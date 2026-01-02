@@ -2,28 +2,48 @@ import React, { useEffect, useState } from 'react'
 import type { Project } from '../types'
 import { Loader2Icon, Plus, PlusIcon, TrashIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { dummyProjects } from '../assets/assets'
 import Footer from '../components/Footer'
+import api from '../configs/axios'
+import { toast } from 'sonner'
+import { authClient } from '../lib/auth-client'
 
 const MyProjects = () => {
   const [loading, setLoading] = useState(true)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { data : session, isPending} = authClient.useSession();
 
   const fetchProjects = async () => {
-    setLoading(true)
-    setProjects(dummyProjects)
-    setTimeout(() => {
-        setLoading(false);
-    }, 1000)
+    try {
+      const {data} = await api.get(`/api/user/projects`);
+      setProjects(data.projects);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+      toast.error("Internal server error!")
+    }
   }
 
   const deleteProject = (projectId: string) => {
-
+    try {
+      const confirm = window.confirm("Are you sure to delete this project?");
+      if(!confirm) return ;
+      const {data} = await api.delete(`/api/project/${projectId}`);
+      toast.success(data.message);
+      fetchProjects();
+    } catch (error) {
+      console.log(error);
+      toast.error("Internal server error!")
+    }
   }
 
   useEffect(() => {
-    fetchProjects()
-  }, [])
+    if(session?.user && !isPending) fetchProjects();
+    else if(!isPending && !session?.user) {
+      toast.info('Please login to continue!');
+      navigate('/');
+    }
+  }, [session?.user]);
 
   const navigate = useNavigate();
 

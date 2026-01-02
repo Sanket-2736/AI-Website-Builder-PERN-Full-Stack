@@ -12,6 +12,7 @@
   "dependencies": {
     "@daveyplate/better-auth-ui": "^3.3.10",
     "@tailwindcss/vite": "^4.1.18",
+    "axios": "^1.13.2",
     "better-auth": "^1.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -1,16 +1,33 @@
 import React from 'react'
 import {Loader2Icon} from "lucide-react";
+import { authClient } from '../lib/auth-client';
+import { toast } from 'sonner';
+import api from '../configs/axios';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
     const [input, setInput] = React.useState("");
     const [loading, setLoading] = React.useState(false);
+    const {data: session} = authClient.useSession();
+    const navigate = useNavigate();
+
     const onSubmitHandler = async(e : React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-
-        setTimeout(() => {
-            setLoading(false);
-        }, 3000);
+        try {
+          if(!session?.user){
+            return toast.error('Please sign in to create a project!')
+          } else if(!input.trim()){
+            return toast.error('Please enter a message!')            
+          }
+          setLoading(true);
+          const {data} = await api.post('/api/user/project', {initial_prompt : input});
+          setLoading(false);
+          navigate(`/projects/${data.projectId}`);
+        } catch (error: any) {
+          setLoading(false);
+          toast.error("Internal server error!")
+          console.log("Error in submit handler: ", error)
+        }
     }
 
   return (

@@ -1,4 +1,3 @@
-import { success } from "better-auth";
 import { Request, Response } from "express"
 import prisma from "../lib/prisma.js";
 import openai from "../configs/openai.js";
@@ -21,7 +20,46 @@ export const getUserCredits = async (req : Request, res : Response) => {
             success : true,
             credits : user?.credits
         })
-    } catch (error) {
+    } catch (error : any) {
+        console.log("Error in user credits: ", error);
+        return res.status(500).json({
+            success : false,
+            message : 'Internal server error!'
+        })
+    }
+}
+
+export const getUserProject = async (req : Request, res : Response) => {
+    try {
+        const userId = req.userId;
+        if(!userId){
+            return res.status(401).json({
+                success : false,
+                message : "Unauthorised access!"
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where : {id : userId}
+        })
+
+        const {projectId} = req.params;
+
+        const project = await prisma.websiteProject.findUnique({
+            where : {id : projectId, userId},
+            include : {
+                conversation : {
+                    orderBy : {timestamp : 'asc'}
+                },
+                versions : {orderBy : {timestamp : 'asc'}}
+            }
+        })
+
+        return res.status(200).json({
+            success : true,
+            project
+        })
+    } catch (error : any) {
         console.log("Error in user credits: ", error);
         return res.status(500).json({
             success : false,
@@ -85,7 +123,7 @@ export const createUserProject = async (req : Request, res : Response) => {
         });
 
         const promptEnhanceResponse = await openai.chat.completions.create({
-            model: "z-ai/glm-4.5-air:free",
+            model: "kwaipilot/kat-coder-pro:free",
             messages : [{
                 role : 'system',
                 content : `
@@ -125,7 +163,7 @@ export const createUserProject = async (req : Request, res : Response) => {
         })
 
         const codeGenerationResponse = await openai.chat.completions.create({
-            model : 'z-ai/glm-4.5-air:free',
+            model : 'kwaipilot/kat-coder-pro:free',
             messages : [
                 {
                     role : 'system',
@@ -165,7 +203,22 @@ export const createUserProject = async (req : Request, res : Response) => {
         })
 
         const code = codeGenerationResponse.choices[0].message.content || '';
+        if(!code){
+            await prisma.conversation.create({
+                data : {
+                    role : 'assistant',
+                    content : "Unable to generate the code. Please try again",
+                    projectId : project.id
+                }                
+            })
 
+            await prisma.user.update({
+                where : {id : userId},
+                data : {
+                    credits : {increment : 5}
+                }
+            });
+        }
         const version = await prisma.version.create({
             data : {
                 code : code.replace(/```[a-z]*\n?/gi, '').replace(/```$/g, '').trim(),
@@ -190,12 +243,104 @@ export const createUserProject = async (req : Request, res : Response) => {
             }
         })
 
-    } catch (error) {
+    } catch (error : any) {
         await prisma.user.update({
             where : {id: userId},
             data : {credits : {increment : 5}}
         })
         console.log("Error in creating project: ", error);
+        return res.status(500).json({
+            success : false,
+            message : 'Internal server error!'
+        })
+    }
+}
+
+export const getUserProjects = async (req : Request, res : Response) => {
+    try {
+        const userId = req.userId;
+        if(!userId){
+            return res.status(401).json({
+                success : false,
+                message : "Unauthorised access!"
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where : {id : userId}
+        })
+
+        const {projectId} = req.params;
+
+        const projects = await prisma.websiteProject.findMany({
+            where : {id : userId},
+            orderBy : {updatedAt : 'desc'}
+        })
+
+        return res.status(200).json({
+            success : true,
+            projects
+        })
+    } catch (error : any) {
+        console.log("Error in user projects: ", error);
+        return res.status(500).json({
+            success : false,
+            message : 'Internal server error!'
+        })
+    }
+}
+
+export const togglePublish = async (req : Request, res : Response) => {
+    try {
+        const userId = req.userId;
+        if(!userId){
+            return res.status(401).json({
+                success : false,
+                message : "Unauthorised access!"
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where : {id : userId}
+        })
+
+        const {projectId} = req.params;
+
+        const project = await prisma.websiteProject.findUnique({
+            where : {id : projectId, userId}
+        });
+
+        if(!project){
+            return res.status(404).json({
+                success : false,
+                message : "Project not found!"
+            })
+        }
+
+        await prisma.websiteProject.update({
+            where : {id : projectId},
+            data :{isPublished : !project.isPublished}
+        })
+
+        return res.status(200).json({
+            success : true,
+            project,
+            message  : project.isPublished ? "Project published!" : "Project unpublished"
+        })
+    } catch (error : any) {
+        console.log("Error in toggle publish: ", error);
+        return res.status(500).json({
+            success : false,
+            message : 'Internal server error!'
+        })
+    }
+}
+
+export const purchaseCredits = async (req : Request, res : Response) => {
+    try {
+        
+    } catch (error : any) {
+        console.log("Error in credits purchase: ", error);
         return res.status(500).json({
             success : false,
             message : 'Internal server error!'
