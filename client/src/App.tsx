@@ -11,6 +11,7 @@ import Navbar from './components/Navbar'
 import { Toaster, toast } from 'sonner'
 import AuthPage from './pages/auth/AuthPage'
 import SettingsPage from './pages/Settings'
+import Loading from './pages/Loading'
 
 const App = () => {
   const {pathname} = useLocation();
@@ -24,6 +25,7 @@ const App = () => {
         <Route path="/auth/:pathname" element={<AuthPage />} />
         <Route path='/' element={<Home/>} />
         <Route path='/pricing' element={<Pricing/>} />
+        <Route path='/loading' element={<Loading/>} />
         <Route path='/projects' element={<MyProjects/>} />
         <Route path='/community' element={<Community/>} />
         <Route path='/view/:projectId' element={<View/>} />

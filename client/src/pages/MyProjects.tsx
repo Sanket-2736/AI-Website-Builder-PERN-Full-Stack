@@ -24,7 +24,7 @@ const MyProjects = () => {
     }
   }
 
-  const deleteProject = (projectId: string) => {
+  const deleteProject = async(projectId: string) => {
     try {
       const confirm = window.confirm("Are you sure to delete this project?");
       if(!confirm) return ;

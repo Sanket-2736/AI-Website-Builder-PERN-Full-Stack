@@ -57,7 +57,7 @@ function Sidebar({isMenuOpen, project, setProject, isGenerating, setIsGenerating
         }
     }, [project.conversation.length, isGenerating]);
 
-    const handleRollback = (versionId: string) => {
+    const handleRollback = async(versionId: string) => {
         try {
             const confirm = window.confirm('Are you sure that you want to rollback to this version?');
             if(!confirm) return;
